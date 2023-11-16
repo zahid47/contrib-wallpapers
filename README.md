@@ -1,4 +1,1 @@
 Contrib Wallpapers
-
-TODO:
-    - resolution
