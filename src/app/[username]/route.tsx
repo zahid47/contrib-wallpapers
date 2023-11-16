@@ -2,15 +2,28 @@ import { fetchData } from "@/utils/fetchData";
 import { pickColor } from "@/utils/pickColor";
 import { ImageResponse } from "next/og";
 import type { NextRequest } from "next/server";
+import z from "zod";
 
 export const runtime = "edge";
 
+const themes = ["github_green", "github_halloween"] as const; //infer from THEMES instead
+
+const searchParamsSchema = z.object({
+  username: z.string(),
+  mode: z.enum(["dark", "light"]).default("light").catch("light"),
+  theme: z.enum(themes).default(themes[0]).catch(themes[0]),
+  h: z.coerce.number().default(1080).catch(1080),
+  w: z.coerce.number().default(1920).catch(1920),
+});
+
 export async function GET(request: NextRequest) {
-  const username = request.nextUrl.searchParams.get("username");
+  const options = searchParamsSchema.parse(
+    Object.fromEntries(request.nextUrl.searchParams.entries())
+  );
 
-  const data = await fetchData(username!);
+  const data = await fetchData(options.username);
 
-  const cleanContributions = data
+  const flatContributions = data
     .map((w) => w.contributionDays.map((d) => d.contributionCount))
     .flat(1);
 
@@ -47,8 +60,9 @@ export async function GET(request: NextRequest) {
                         height: 18,
                         width: 18,
                         backgroundColor: pickColor(
-                          cleanContributions,
-                          day.contributionCount
+                          flatContributions,
+                          day.contributionCount,
+                          options
                         ),
                         borderRadius: 4,
                         margin: 2,
